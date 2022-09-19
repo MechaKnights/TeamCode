@@ -8,7 +8,7 @@ import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 
 public class TeamShippingElementPipeline extends OpenCvPipeline {
-    //An enum to define the Team Shipping Element position
+    //An enum to define the sleeve colors
     public enum TeamShippingElementPosition {
         LEFT,
         CENTER,
@@ -46,7 +46,7 @@ public class TeamShippingElementPipeline extends OpenCvPipeline {
         Core.inRange(orangemat,lowOrange,highOrange,orangemat);
         
         Mat center = mat.submat(CENTER_ROI);
-        
+        //finding values
         double greenValue = Core.sumElems(center).val[0] / CENTER_ROI.area() / 255;
         double pinkValue = Core.sumElems(center).val[0] / CENTER_ROI.area() / 255;
         double orangeValue = Core.sumElems(center).val[0] / CENTER_ROI.area() / 255;
