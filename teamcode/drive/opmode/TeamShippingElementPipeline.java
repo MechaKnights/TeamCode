@@ -36,10 +36,10 @@ public class TeamShippingElementPipeline extends OpenCvPipeline {
         //This is what detects the different colors
         Scalar lowGreen = new Scalar(36,50,70);
         Scalar highGreen = new Scalar(86,255,255);
-        Scalar lowPink = new Scalar(254, 192, 255);
-        Scalar highPink = new Scalar(250, 0, 255);
-        Scalar lowOrange = new Scalar(255, 190, 71);
-        Scalar highOrange = new Scalar(255, 165, 0);
+        Scalar lowPink = new Scalar(299, 25, 100);
+        Scalar highPink = new Scalar(299, 100, 100);
+        Scalar lowOrange = new Scalar(39, 72, 100);
+        Scalar highOrange = new Scalar(39, 100, 100);
 
         Core.inRange(greenmat,lowGreen,highGreen,greenmat);
         Core.inRange(pinkmat,lowPink,highPink,pinkmat);
