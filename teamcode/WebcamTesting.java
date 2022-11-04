@@ -5,10 +5,7 @@ import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.internal.android.dx.command.Main;
-import org.firstinspires.ftc.teamcode.SignalPipeline1;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
@@ -19,8 +16,6 @@ import org.openftc.easyopencv.OpenCvWebcam;
 public class WebcamTesting extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
-        double realDistance = 0;
-
         OpenCvWebcam webcam;
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         WebcamName webcamName = hardwareMap.get(WebcamName.class, "Webcam 1");
@@ -47,8 +42,13 @@ public class WebcamTesting extends LinearOpMode {
         });
 
 
-        while (!isStarted() && !isStopRequested()) {}
-
-        telemetry.addData("Approximate distance:", realDistance);
+        while (!isStarted()) {
+            telemetry.addData("Rotation", myPipeline1.getAnalysis());
+            telemetry.addData("Green Value", SignalPipeline1.getGreenValue());
+            telemetry.addData("Red Value", SignalPipeline1.getRedValue());
+            telemetry.addData("Purple Value", SignalPipeline1.getPurpleValue());
+            telemetry.update();
+        }
+        waitForStart();
     }
 }
