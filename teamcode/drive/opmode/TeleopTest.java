@@ -3,8 +3,10 @@ package org.firstinspires.ftc.teamcode.drive.opmode;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
 /**
@@ -18,7 +20,8 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 public class TeleopTest extends LinearOpMode {
     private DcMotorEx lift;
     private DcMotorEx intake;
-
+    private DcMotorEx lift2;
+    private CRServo extendLift;
 
 
 
@@ -31,24 +34,18 @@ public class TeleopTest extends LinearOpMode {
 
         lift = hardwareMap.get(DcMotorEx.class, "lift");
         intake = hardwareMap.get(DcMotorEx.class, "intake");
+        lift2 = hardwareMap.get(DcMotorEx.class, "lift2");
+        extendLift = hardwareMap.get(CRServo.class, "extendLift");
 
         intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-
-
-
-
-
+        lift2.setDirection(DcMotorEx.Direction.REVERSE);
         waitForStart();
-
         while (!isStopRequested()) {
             drive.setWeightedDrivePower(
                     new Pose2d(
-
-                            -gamepad1.left_stick_y,
-                            -gamepad1.left_stick_x,
-                            -gamepad1.right_stick_x
-
+                            -gamepad1.left_stick_y * 0.5,
+                            -gamepad1.left_stick_x * 0.5,
+                            -gamepad1.right_stick_x * 0.5
                     )
             );
 
@@ -61,11 +58,14 @@ public class TeleopTest extends LinearOpMode {
             telemetry.update();
 
             if (gamepad2.dpad_up) {
-                lift.setPower(.75);
+                lift.setPower(1);
+                lift2.setPower(1);
             } else if (gamepad2.dpad_down) {
-                lift.setPower(-.75);
+                lift.setPower(-0.1);
+                lift2.setPower(-0.1);
             }else {
-                lift.setPower(0);
+                lift.setPower(0.1);
+                lift2.setPower(0.1);
             }
 
             if (gamepad2.left_bumper) {
@@ -73,7 +73,7 @@ public class TeleopTest extends LinearOpMode {
             } else if (gamepad2.right_bumper) {
                 intake.setPower(-.75);
             }else {
-                intake.setPower(0.25);
+                intake.setPower(0.2);
             }
         }
     }
