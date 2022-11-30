@@ -8,17 +8,22 @@ import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 
 public class SignalPipeline extends OpenCvPipeline {
+
     //An enum to define the sleeve colors
     public enum TeamShippingElementPosition {
         LEFT,
         CENTER,
         RIGHT
     }
+    //Declare variables for values
+    private static double greenValue;
+    private static double purpleValue;
+    private static double redValue;
     //Some colors for the display
     static final Scalar BLUE = new Scalar(0,0,255);
     static final Scalar GREEN = new Scalar(0,255,0);
-    static final Scalar PINK = new Scalar(350,25,100);
-    static final Scalar ORANGE = new Scalar(39,100,100);
+    static final Scalar Purple = new Scalar(255,0,255);
+    static final Scalar ORANGE = new Scalar(255,130,0);
 
     //20 x 20 pixel box. We'll need to adjust this
 
@@ -26,46 +31,42 @@ public class SignalPipeline extends OpenCvPipeline {
             new Point(170, 200),
             new Point(190, 220));
 
+    Mat mat = new Mat();
     Mat greenmat = new Mat();
-    Mat pinkmat = new Mat();
-    Mat orangemat = new Mat();
+    Mat redmat = new Mat();
+    Mat purplemat = new Mat();
     //replace with space that is most useful
-    private volatile TeamShippingElementPosition position = TeamShippingElementPosition.CENTER;
+    private volatile TeamShippingElementPosition position = TeamShippingElementPosition.LEFT;
 
     @Override
     public Mat processFrame(Mat input){
-        Imgproc.cvtColor(input, greenmat, Imgproc.COLOR_RGB2HSV);
-        Imgproc.cvtColor(input, pinkmat, Imgproc.COLOR_RGB2HSV);
-        Imgproc.cvtColor(input, orangemat, Imgproc.COLOR_RGB2HSV);
+        Imgproc.cvtColor(input, mat, Imgproc.COLOR_RGB2HSV);
         //This is what detects the different colors
+        Scalar lowRed = new Scalar(0,50,70);
+        Scalar highRed = new Scalar(35,255,255);
         Scalar lowGreen = new Scalar(36,50,70);
         Scalar highGreen = new Scalar(86,255,255);
-        Scalar lowPink = new Scalar(299, 25, 100);
-        Scalar highPink = new Scalar(299, 100, 100);
-        Scalar lowOrange = new Scalar(39, 72, 100);
-        Scalar highOrange = new Scalar(39, 100, 100);
+        Scalar lowPurple = new Scalar(120,50,70);
+        Scalar highPurple = new Scalar(300,255,255);
 
-        Core.inRange(greenmat,lowGreen,highGreen,greenmat);
-        Core.inRange(pinkmat,lowPink,highPink,pinkmat);
-        Core.inRange(orangemat,lowOrange,highOrange,orangemat);
+        Core.inRange(mat,lowGreen,highGreen,greenmat);
+        Core.inRange(mat,lowPurple,highPurple,purplemat);
+        Core.inRange(mat,lowRed,highRed,redmat);
 
         //Mat left = greenmat.submat(CENTER_ROI);
-        //Mat center = pinkmat.submat(CENTER_ROI);
+        //Mat center = Purplemat.submat(CENTER_ROI);
         //Mat right = orangemat.submat(CENTER_ROI);
 
         //finding values
-        double greenValue = Core.sumElems(greenmat).val[0] / CENTER_ROI.area() / 255;
-        double pinkValue = Core.sumElems(pinkmat).val[0] / CENTER_ROI.area() / 255;
-        double orangeValue = Core.sumElems(orangemat).val[0] / CENTER_ROI.area() / 255;
+        greenValue = Core.sumElems(greenmat).val[0] / CENTER_ROI.area() / 255;
+        purpleValue = Core.sumElems(purplemat).val[0] / CENTER_ROI.area() / 255;
+        redValue = Core.sumElems(redmat).val[0] / CENTER_ROI.area() / 255;
 
         greenmat.release();
-        pinkmat.release();
-        orangemat.release();
+        purplemat.release();
+        redmat.release();
 
-        double maxOneTwo = Math.max(greenValue, pinkValue);
-        double max = Math.max(maxOneTwo, orangeValue);
-
-        Imgproc.cvtColor(greenmat,greenmat,Imgproc.COLOR_GRAY2RGB);
+        double max = Math.max(redValue, Math.max(greenValue, purpleValue));
 
         Imgproc.rectangle(
                 input,
@@ -87,19 +88,19 @@ public class SignalPipeline extends OpenCvPipeline {
 
         }
 
-        if(max == pinkValue) {
+        if(max == purpleValue) {
             position = TeamShippingElementPosition.CENTER;
 
             Imgproc.rectangle(
                     input,
                     new Point(170,200),
                     new Point(190,220),
-                    PINK,
+                    Purple,
                     -1);
 
         }
 
-        if(max == orangeValue) {
+        if(max == redValue) {
             position = TeamShippingElementPosition.RIGHT;
 
             Imgproc.rectangle(
@@ -114,4 +115,8 @@ public class SignalPipeline extends OpenCvPipeline {
         return input;
     }
     public TeamShippingElementPosition getAnalysis() {return position;}
+
+    public static double getGreenValue() {return greenValue; }
+    public static double getPurpleValue() {return purpleValue; }
+    public static double getRedValue() {return redValue; }
 }
