@@ -8,6 +8,11 @@ import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 
 public class SignalPipeline extends OpenCvPipeline {
+    /*
+    YELLOW  = Parking Left
+    CYAN    = Parking Middle
+    MAGENTA = Parking Right
+     */
 
     //An enum to define the sleeve colors
     public enum TeamShippingElementPosition {
@@ -15,108 +20,85 @@ public class SignalPipeline extends OpenCvPipeline {
         CENTER,
         RIGHT
     }
-    //Declare variables for values
-    private static double greenValue;
-    private static double purpleValue;
-    private static double redValue;
+
+    private static Point SLEEVE_TOPLEFT_ANCHOR_POINT = new Point(145, 168);
+
+    public static int REGION_WIDTH = 30;
+    public static int REGION_HEIGHT = 50;
+
     //Some colors for the display
-    static final Scalar BLUE = new Scalar(0,0,255);
-    static final Scalar GREEN = new Scalar(0,255,0);
-    static final Scalar Purple = new Scalar(255,0,255);
-    static final Scalar ORANGE = new Scalar(255,130,0);
+    private final Scalar
+            YELLOW  = new Scalar(255, 255, 0),
+            CYAN    = new Scalar(0, 255, 255),
+            MAGENTA = new Scalar(255, 0, 255);
 
     //20 x 20 pixel box. We'll need to adjust this
-
-    static final Rect CENTER_ROI = new Rect(
-            new Point(170, 200),
-            new Point(190, 220));
-
-    Mat mat = new Mat();
-    Mat greenmat = new Mat();
-    Mat redmat = new Mat();
-    Mat purplemat = new Mat();
+    Point sleeve_pointA = new Point(
+            SLEEVE_TOPLEFT_ANCHOR_POINT.x,
+            SLEEVE_TOPLEFT_ANCHOR_POINT.y);
+    Point sleeve_pointB = new Point(
+            SLEEVE_TOPLEFT_ANCHOR_POINT.x + REGION_WIDTH,
+            SLEEVE_TOPLEFT_ANCHOR_POINT.y + REGION_HEIGHT);
     //replace with space that is most useful
-    private volatile TeamShippingElementPosition position = TeamShippingElementPosition.LEFT;
+    private static volatile TeamShippingElementPosition position = TeamShippingElementPosition.LEFT;
 
     @Override
     public Mat processFrame(Mat input){
-        Imgproc.cvtColor(input, mat, Imgproc.COLOR_RGB2HSV);
-        //This is what detects the different colors
-        Scalar lowRed = new Scalar(0,50,70);
-        Scalar highRed = new Scalar(35,255,255);
-        Scalar lowGreen = new Scalar(36,50,70);
-        Scalar highGreen = new Scalar(86,255,255);
-        Scalar lowPurple = new Scalar(120,50,70);
-        Scalar highPurple = new Scalar(300,255,255);
 
-        Core.inRange(mat,lowGreen,highGreen,greenmat);
-        Core.inRange(mat,lowPurple,highPurple,purplemat);
-        Core.inRange(mat,lowRed,highRed,redmat);
+        Mat areaMat = input.submat(new Rect(sleeve_pointA, sleeve_pointB));
+        Scalar sumColors = Core.sumElems(areaMat);
 
-        //Mat left = greenmat.submat(CENTER_ROI);
-        //Mat center = Purplemat.submat(CENTER_ROI);
-        //Mat right = orangemat.submat(CENTER_ROI);
-
-        //finding values
-        greenValue = Core.sumElems(greenmat).val[0] / CENTER_ROI.area() / 255;
-        purpleValue = Core.sumElems(purplemat).val[0] / CENTER_ROI.area() / 255;
-        redValue = Core.sumElems(redmat).val[0] / CENTER_ROI.area() / 255;
-
-        greenmat.release();
-        purplemat.release();
-        redmat.release();
-
-        double max = Math.max(redValue, Math.max(greenValue, purpleValue));
+        double minColor = Math.min(sumColors.val[0], Math.min(sumColors.val[1], sumColors.val[2]));
 
         Imgproc.rectangle(
                 input,
-                new Point(170,200),
-                new Point(190,220),
-                BLUE,
+                new Point(155,85),
+                new Point(165,95),
+                YELLOW,
                 -1);
 
         //if statements to determine what color the sleeve is
-        if(max == greenValue) {
+        if(sumColors.val[0] == minColor) {
             position = TeamShippingElementPosition.LEFT;
 
             Imgproc.rectangle(
                     input,
-                    new Point(170,200),
-                    new Point(190,220),
-                    GREEN,
+                    new Point(155,85),
+                    new Point(165,95),
+                    YELLOW,
                     -1);
 
         }
 
-        if(max == purpleValue) {
+        if(sumColors.val[1] == minColor) {
             position = TeamShippingElementPosition.CENTER;
 
             Imgproc.rectangle(
                     input,
-                    new Point(170,200),
-                    new Point(190,220),
-                    Purple,
+                    new Point(155,85),
+                    new Point(165,95),
+                    CYAN,
                     -1);
 
         }
 
-        if(max == redValue) {
+        if(sumColors.val[2] == minColor) {
             position = TeamShippingElementPosition.RIGHT;
 
             Imgproc.rectangle(
                     input,
-                    new Point(170,200),
-                    new Point(190,220),
-                    ORANGE,
+                    new Point(155,85),
+                    new Point(165,95),
+                    MAGENTA,
                     -1);
 
         }
-
+        double uno = sumColors.val[0];
+        double dos = sumColors.val[1];
+        double tres = sumColors.val[2];
+        areaMat.release();
         return input;
     }
-    public TeamShippingElementPosition getAnalysis() {return position;}
+    public static TeamShippingElementPosition getAnalysis() {return position;}
 
-    public static double getGreenValue() {return greenValue; }
-    public static double getPurpleValue() {return purpleValue; }
-    public static double getRedValue() {return redValue; }
 }
