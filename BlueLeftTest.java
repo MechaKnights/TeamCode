@@ -16,7 +16,7 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import java.util.ArrayList;
 
 @Autonomous
-public class RedLeftTest extends LinearOpMode {
+public class BlueLeftTest extends LinearOpMode {
     //INTRODUCE VARIABLES HERE
 
     OpenCvCamera camera;
@@ -53,7 +53,7 @@ public class RedLeftTest extends LinearOpMode {
         aprilTagDetectionPipeline = new AprilTagDetectionPipeline(tagsize, fx, fy, cx, cy);
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-        Trajectory traj1 = drive.trajectoryBuilder(new Pose2d())
+        Trajectory traj1 = drive.trajectoryBuilder(new Pose2d(33,0,0))
                 .strafeLeft(55)
                 .build();
         Trajectory traj2 = drive.trajectoryBuilder(new Pose2d(33,0,0))
@@ -67,12 +67,6 @@ public class RedLeftTest extends LinearOpMode {
                 .build();
         Trajectory traj5 = drive.trajectoryBuilder(new Pose2d(48,0,0))
                 .back(13)
-                .build();
-        Trajectory traj6 = drive.trajectoryBuilder(new Pose2d(33,0,0))
-                .strafeLeft(55)
-                .build();
-        Trajectory traj7 = drive.trajectoryBuilder(new Pose2d(33,0,0))
-                .strafeRight(52)
                 .build();
 
         camera.setPipeline(aprilTagDetectionPipeline);
@@ -162,35 +156,27 @@ public class RedLeftTest extends LinearOpMode {
 
         if(tagOfInterest == null){
             //default path
-            drive.followTrajectory(traj1);
-            drive.followTrajectory(traj2);
             drive.followTrajectory(traj3);
             drive.followTrajectory(traj4);
             drive.followTrajectory(traj5);
         }else{
             switch(tagOfInterest.id){
                 case 1:
-                    drive.followTrajectory(traj1);
-                    drive.followTrajectory(traj2);
                     drive.followTrajectory(traj3);
                     drive.followTrajectory(traj4);
                     drive.followTrajectory(traj5);
-                    drive.followTrajectory(traj6);
+                    drive.followTrajectory(traj1);
                     break;
                 case 2:
-                    drive.followTrajectory(traj1);
-                    drive.followTrajectory(traj2);
                     drive.followTrajectory(traj3);
                     drive.followTrajectory(traj4);
                     drive.followTrajectory(traj5);
                     break;
                 case 3:
-                    drive.followTrajectory(traj1);
-                    drive.followTrajectory(traj2);
                     drive.followTrajectory(traj3);
                     drive.followTrajectory(traj4);
                     drive.followTrajectory(traj5);
-                    drive.followTrajectory(traj7);
+                    drive.followTrajectory(traj2);
                     break;
             }
         }
