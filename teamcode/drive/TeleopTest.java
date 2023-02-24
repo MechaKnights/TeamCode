@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
@@ -24,6 +25,7 @@ public class TeleopTest extends LinearOpMode {
     private CRServo extendLift;
     private static double speed1 = 0.475;
     private static double speed2 = speed1*2;
+    private DistanceSensor sensor;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -55,6 +57,7 @@ public class TeleopTest extends LinearOpMode {
             telemetry.addData("x", poseEstimate.getX());
             telemetry.addData("y", poseEstimate.getY());
             telemetry.addData("heading", poseEstimate.getHeading());
+            sensor = hardwareMap.get(DistanceSensor.class, "sensor");
             telemetry.update();
 
             if (gamepad2.dpad_up) {
