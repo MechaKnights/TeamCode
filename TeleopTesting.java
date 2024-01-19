@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
@@ -18,12 +19,12 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 @TeleOp(group = "drive")
 public class TeleopTesting extends LinearOpMode {
     private DcMotorEx lift;
-//    private DcMotorEx intake;
     private DcMotorEx lift2;
-//    private CRServo extendLift;
     private static double speed1 = 0.475;
     private static double speed2 = speed1*2;
-//    private DistanceSensor sensor;
+    private static double speed3 = speed1*1.75;
+    private Servo swingBar;
+    private Servo claw;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -32,20 +33,18 @@ public class TeleopTesting extends LinearOpMode {
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         lift = hardwareMap.get(DcMotorEx.class, "lift");
-//        intake = hardwareMap.get(DcMotorEx.class, "intake");
         lift2 = hardwareMap.get(DcMotorEx.class, "lift2");
-//        extendLift = hardwareMap.get(CRServo.class, "extendLift");
+        claw = hardwareMap.get(Servo.class, "claw");
+        swingBar = hardwareMap.get(Servo.class, "SwingBar");
 
-//        intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         lift2.setDirection(DcMotorEx.Direction.REVERSE);
         waitForStart();
         while (!isStopRequested()) {
-            double speed2 = speed1*2;
             drive.setWeightedDrivePower(
                     new Pose2d(
                             -gamepad1.left_stick_y * speed1,
                             -gamepad1.left_stick_x * speed2,
-                            -gamepad1.right_stick_x * speed1
+                            -gamepad1.right_stick_x * speed3
                     )
             );
 
@@ -68,26 +67,16 @@ public class TeleopTesting extends LinearOpMode {
                 lift2.setPower(0.1);
             }
 
-//            if (gamepad2.left_bumper) {
-//                intake.setPower(.75);
-//            } else if (gamepad2.right_bumper) {
-//                intake.setPower(-.75);
-//            } else {
-//                intake .setPower(0);
-//            }
-
-//            if (gamepad2.x) {
-//                extendLift.setPower(.5);
-//            } else if (gamepad2.y) {
-//                extendLift.setPower(-.5);
-//            }else {
-//                extendLift.setPower(0.075);
-//            }
-//            if (gamepad1.right_bumper) {
-//                speed1 = 0.25;
-//            } else {
-//                speed1 = 0.475;
-//            }
+            if (gamepad2.left_bumper) {
+                claw.setPosition(0.3);
+            } else if (gamepad2.right_bumper) {
+                claw.setPosition(-0.3);
+            }
+            if (gamepad1.a) {
+                swingBar.setPosition(1);
+            } else if (gamepad1.b) {
+                swingBar.setPosition(0);
+            }
         }
     }
 }
