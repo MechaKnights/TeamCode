@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.drive.opmode;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.CRServo;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
@@ -24,7 +25,10 @@ public class TeleopTesting extends LinearOpMode {
     private static double speed2 = speed1*2;
     private static double speed3 = speed1*1.75;
     private Servo swingBar;
-    private Servo claw;
+    private CRServo claw;
+    private CRServo claw2;
+    private int length = 0;
+    private int swing = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -34,7 +38,8 @@ public class TeleopTesting extends LinearOpMode {
 
         lift = hardwareMap.get(DcMotorEx.class, "lift");
         lift2 = hardwareMap.get(DcMotorEx.class, "lift2");
-        claw = hardwareMap.get(Servo.class, "claw");
+        claw = hardwareMap.get(CRServo.class, "claw");
+        claw2 = hardwareMap.get(CRServo.class, "claw2");
         swingBar = hardwareMap.get(Servo.class, "SwingBar");
 
         lift2.setDirection(DcMotorEx.Direction.REVERSE);
@@ -67,15 +72,68 @@ public class TeleopTesting extends LinearOpMode {
                 lift2.setPower(0.1);
             }
 
+//            if (gamepad2.dpad_up) {
+//                switch(length) {
+//                    case 1:
+//                        lift.setPositionPIDFCoefficients(5);
+//                        lift2.setPositionPIDFCoefficients(5);
+//                        length = 2;
+//                    case 2:
+//                        lift.setPositionPIDFCoefficients(10);
+//                        lift2.setPositionPIDFCoefficients(10);
+//                        length = 3;
+//                    case 3:
+//                        lift.setPositionPIDFCoefficients(15);
+//                        lift2.setPositionPIDFCoefficients(15);
+//                }
+//            } else if (gamepad2.dpad_down) {
+//                switch(length) {
+//                    case 3:
+//                        lift.setPositionPIDFCoefficients(15);
+//                        lift2.setPositionPIDFCoefficients(15);
+//                        length = 3;
+//                    case 2:
+//                        lift.setPositionPIDFCoefficients(10);
+//                        lift2.setPositionPIDFCoefficients(10);
+//                        length = 1;
+//                    case 1:
+//                        lift.setPositionPIDFCoefficients(5);
+//                        lift2.setPositionPIDFCoefficients(5);
+//                }
+//            }else {
+//                lift.setPower(0.1);
+//                lift2.setPower(0.1);
+//            }
+
             if (gamepad2.left_bumper) {
-                claw.setPosition(0.3);
+                claw.setPower(0.3);
+                claw2.setPower(-0.3);
             } else if (gamepad2.right_bumper) {
-                claw.setPosition(-0.3);
+                claw.setPower(-0.3);
+                claw2.setPower(0.3);
             }
             if (gamepad1.a) {
-                swingBar.setPosition(1);
+                switch(swing) {
+                    case(0):
+                        swingBar.setPosition(1);
+                        swing = 1;
+                    case(1):
+                        swingBar.setPosition(0.6);
+                        swing = 2;
+                    case(2):
+                        swingBar.setPosition(0);
+                }
             } else if (gamepad1.b) {
-                swingBar.setPosition(0);
+                switch(swing) {
+                    case(2):
+                        swingBar.setPosition(0);
+                        swing = 1;
+                    case(1):
+                        swingBar.setPosition(0.6);
+                        swing = 0;
+                    case(0):
+                        swingBar.setPosition(1);
+                }
             }
         }
     }
