@@ -24,7 +24,7 @@ public class TeleopTest extends LinearOpMode {
     private DcMotorEx lift2;
     private CRServo extendLift;
     private static double speed1 = 0.475;
-    private static double speed2 = speed1*2;
+    private double speed2 = 0.95;
     private DistanceSensor sensor;
 
     @Override
@@ -42,7 +42,6 @@ public class TeleopTest extends LinearOpMode {
         lift2.setDirection(DcMotorEx.Direction.REVERSE);
         waitForStart();
         while (!isStopRequested()) {
-            double speed2 = speed1*2;
             drive.setWeightedDrivePower(
                     new Pose2d(
                             -gamepad1.left_stick_y * speed1,
