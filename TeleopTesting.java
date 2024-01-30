@@ -24,11 +24,11 @@ public class TeleopTesting extends LinearOpMode {
     private static double speed1 = 0.475;
     private static double speed2 = speed1*2;
     private static double speed3 = speed1*1.75;
-    private Servo swingBar;
+    private DcMotor swingBar;
     private CRServo claw;
     private CRServo claw2;
-    private int length = 0;
-    private int swing = 0;
+//    private int length = 0;
+//    private int swing = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -40,7 +40,7 @@ public class TeleopTesting extends LinearOpMode {
         lift2 = hardwareMap.get(DcMotorEx.class, "lift2");
         claw = hardwareMap.get(CRServo.class, "claw");
         claw2 = hardwareMap.get(CRServo.class, "claw2");
-        swingBar = hardwareMap.get(Servo.class, "SwingBar");
+        swingBar = hardwareMap.get(DcMotor.class, "SwingBar");
 
         lift2.setDirection(DcMotorEx.Direction.REVERSE);
         waitForStart();
@@ -106,34 +106,21 @@ public class TeleopTesting extends LinearOpMode {
 //            }
 
             if (gamepad2.left_bumper) {
-                claw.setPower(0.3);
-                claw2.setPower(-0.3);
+                claw.setPower(0.5);
+//                claw2.setPower(0);
             } else if (gamepad2.right_bumper) {
-                claw.setPower(-0.3);
-                claw2.setPower(0.3);
+                claw.setPower(-0.5);
+//                claw2.setPower(0);
+//            } else {
+//                claw.setPower(0.5);
+//                claw2.setPower(0);
             }
-            if (gamepad1.a) {
-                switch(swing) {
-                    case(0):
-                        swingBar.setPosition(1);
-                        swing = 1;
-                    case(1):
-                        swingBar.setPosition(0.6);
-                        swing = 2;
-                    case(2):
-                        swingBar.setPosition(0);
-                }
-            } else if (gamepad1.b) {
-                switch(swing) {
-                    case(2):
-                        swingBar.setPosition(0);
-                        swing = 1;
-                    case(1):
-                        swingBar.setPosition(0.6);
-                        swing = 0;
-                    case(0):
-                        swingBar.setPosition(1);
-                }
+            if (gamepad2.a) {
+                swingBar.setPower(0.5);
+            } else if (gamepad2.x) {
+                swingBar.setPower(-0.5);
+            } else {
+                swingBar.setPower(0.1);
             }
         }
     }
