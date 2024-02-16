@@ -1,0 +1,47 @@
+package org.firstinspires.ftc.teamcode.drive.opmode;
+
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.arcrobotics.ftclib.controller.PIDController;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+
+import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+
+@Config
+@TeleOp
+public class PIDTest extends LinearOpMode {
+
+    public static double p=0, i=0, d=0, f=0;
+    public static double goal = 0;
+    public static double curr = 0;
+    private PIDController slideController;
+    private DcMotor swingBar;
+
+    @Override
+    public void runOpMode() throws InterruptedException {
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+
+        swingBar = hardwareMap.get(DcMotor.class, "swingBar");
+        swingBar.setDirection(DcMotorEx.Direction.REVERSE);
+        swingBar.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        slideController = new PIDController(p,i,d);
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
+        waitForStart();
+        while (opModeIsActive()) {
+            slideController.setPID(p,i,d);
+            curr = swingBar.getCurrentPosition();
+
+            swingBar.setPower(slideController.calculate(curr, goal) + f);
+
+            telemetry.addData("curr: ", curr);
+            telemetry.addData("goal: ", goal);
+            telemetry.update();
+        }
+    }
+}
