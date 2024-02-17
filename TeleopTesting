@@ -1,10 +1,12 @@
+package org.firstinspires.ftc.teamcode.drive.opmode;
+
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
@@ -18,8 +20,8 @@ public class TeleopTesting extends LinearOpMode {
     private DcMotor swingBar;
     private CRServo claw;
     private CRServo claw2;
-//    private int length = 0;
-//    private int swing = 0;
+    public static double curr = 0;
+    private static double swing = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -31,11 +33,15 @@ public class TeleopTesting extends LinearOpMode {
         lift2 = hardwareMap.get(DcMotorEx.class, "lift2");
         claw = hardwareMap.get(CRServo.class, "claw");
         claw2 = hardwareMap.get(CRServo.class, "claw2");
-        swingBar = hardwareMap.get(DcMotor.class, "SwingBar");
+        swingBar = hardwareMap.get(DcMotor.class, "swingBar");
 
         lift2.setDirection(DcMotorEx.Direction.REVERSE);
+        claw.setDirection(DcMotorSimple.Direction.REVERSE);
+//        swingBar.setDirection(DcMotorSimple.Direction.REVERSE);
+
         waitForStart();
         while (!isStopRequested()) {
+            curr = swingBar.getCurrentPosition();
             drive.setWeightedDrivePower(
                     new Pose2d(
                             -gamepad1.left_stick_y * speed1,
@@ -50,68 +56,48 @@ public class TeleopTesting extends LinearOpMode {
             telemetry.addData("x", poseEstimate.getX());
             telemetry.addData("y", poseEstimate.getY());
             telemetry.addData("heading", poseEstimate.getHeading());
+            telemetry.addData("curr: ", curr);
             telemetry.update();
+
+            if (gamepad1.right_bumper) {
+                speed1 = 0.235;
+            } else {
+                speed1 = 0.475;
+            }
+            speed2 = speed1*2;
+            speed3 = speed1*1.75;
 
             if (gamepad2.dpad_up) {
                 lift.setPower(1);
                 lift2.setPower(1);
             } else if (gamepad2.dpad_down) {
-                lift.setPower(-0.8);
-                lift2.setPower(-0.8);
+                lift.setPower(-1);
+                lift2.setPower(-1);
             }else {
                 lift.setPower(0.1);
                 lift2.setPower(0.1);
             }
 
-//            if (gamepad2.dpad_up) {
-//                switch(length) {
-//                    case 1:
-//                        lift.setPositionPIDFCoefficients(5);
-//                        lift2.setPositionPIDFCoefficients(5);
-//                        length = 2;
-//                    case 2:
-//                        lift.setPositionPIDFCoefficients(10);
-//                        lift2.setPositionPIDFCoefficients(10);
-//                        length = 3;
-//                    case 3:
-//                        lift.setPositionPIDFCoefficients(15);
-//                        lift2.setPositionPIDFCoefficients(15);
-//                }
-//            } else if (gamepad2.dpad_down) {
-//                switch(length) {
-//                    case 3:
-//                        lift.setPositionPIDFCoefficients(15);
-//                        lift2.setPositionPIDFCoefficients(15);
-//                        length = 3;
-//                    case 2:
-//                        lift.setPositionPIDFCoefficients(10);
-//                        lift2.setPositionPIDFCoefficients(10);
-//                        length = 1;
-//                    case 1:
-//                        lift.setPositionPIDFCoefficients(5);
-//                        lift2.setPositionPIDFCoefficients(5);
-//                }
-//            }else {
-//                lift.setPower(0.1);
-//                lift2.setPower(0.1);
-//            }
-
             if (gamepad2.left_bumper) {
-                claw.setPower(0.5);
-//                claw2.setPower(0);
+                claw.setPower(-0.6);
+                claw2.setPower(-0.6);
             } else if (gamepad2.right_bumper) {
-                claw.setPower(-0.5);
-//                claw2.setPower(0);
-//            } else {
-//                claw.setPower(0.5);
-//                claw2.setPower(0);
-            }
-            if (gamepad2.a) {
-                swingBar.setPower(0.5);
-            } else if (gamepad2.x) {
-                swingBar.setPower(-0.5);
+                claw.setPower(0.6);
+                claw2.setPower(0.6);
             } else {
+                claw.setPower(0.1);
+                claw2.setPower(0.1);
+            }
+            if (gamepad2.x) {
+                swingBar.setPower(0.5);
+                swing = 0;
+            } else if (gamepad2.a) {
+                swingBar.setPower(-0.5);
+                swing = 1;
+            } else if (swing == 0) {
                 swingBar.setPower(0.1);
+            } else if (swing == 1) {
+                swingBar.setPower(-0.1);
             }
         }
     }
