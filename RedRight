@@ -34,7 +34,6 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
-import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -50,14 +49,6 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
 import java.util.List;
-//this code does not do anything other than move the robot in the direction that it detects the team marker in.
-/*
- * This OpMode illustrates the basics of TensorFlow Object Detection,
- * including Java Builder structures for specifying Vision parameters.
- *
- * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
- * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
- */
 
 @Autonomous(name = "Red Right TensorFlow", group = "Concept")
 public class RedRight extends LinearOpMode {
@@ -115,7 +106,7 @@ public class RedRight extends LinearOpMode {
                 .back(52)
                 .build();
         Trajectory traj2 = drive.trajectoryBuilder(new Pose2d(-52, 0, 0))
-                .back(5)
+                .back(40)
                 .build();
         Trajectory traj3 = drive.trajectoryBuilder(new Pose2d(-35, 0, -150))
                 .forward(15)
@@ -124,7 +115,7 @@ public class RedRight extends LinearOpMode {
                 .strafeLeft(55)
                 .build();
         Trajectory traj5 = drive.trajectoryBuilder(new Pose2d())
-                .forward(17)
+                .forward(13)
                 .build();
         Trajectory traj6 = drive.trajectoryBuilder(new Pose2d(-42, 0, -150))
                 .back(20)
@@ -136,13 +127,13 @@ public class RedRight extends LinearOpMode {
                 .back(20)
                 .build();
         Trajectory traj9 = drive.trajectoryBuilder(new Pose2d(0, -10, -150))
-                .back(20)
+                .back(15)
                 .build();
         Trajectory traj10 = drive.trajectoryBuilder(new Pose2d())
                 .back(10)
                 .build();
         Trajectory traj11 = drive.trajectoryBuilder(new Pose2d(0, -10, -150))
-                .back(22)
+                .back(25)
                 .build();
         Trajectory traj12 = drive.trajectoryBuilder(new Pose2d(-42, 0, -150))
                 .strafeLeft(50)
@@ -189,18 +180,20 @@ public class RedRight extends LinearOpMode {
                     swingBar.setPower(-0.1);
                     lift.setPower(0.1);
                     lift2.setPower(0.1);
+                    drive.followTrajectory(traj6);
+                    sleep(500);
+                    drive.followTrajectory(traj14);
+                    sleep(500);
+                    drive.turn(Math.toRadians(-35));
+                    sleep(200);
                     drive.followTrajectory(traj12);
                     sleep(500);
-//                    drive.turn(Math.toRadians(-35));
-                    sleep(500);
-//                    drive.followTrajectory(traj13);
-                    sleep(900);
                     claw.setPower(-0.3);
                     claw2.setPower(-0.3);
                     sleep(500);
                     claw.setPower(0);
                     claw2.setPower(0);
-                    swingBar.setPower(0.38);
+                    swingBar.setPower(0.35);
                     sleep(500);
                     lift.setPower(-0.4);
                     lift2.setPower(-0.4);
@@ -214,7 +207,10 @@ public class RedRight extends LinearOpMode {
                     break;
                 }
                 else if(left == true){
+                    drive.followTrajectory(traj1);
+                    sleep(500);
                     drive.followTrajectory(traj5);
+                    sleep(200);
                     swingBar.setPower(0.3);
                     drive.turn(Math.toRadians(-150));
                     drive.followTrajectory(traj3);
@@ -232,8 +228,8 @@ public class RedRight extends LinearOpMode {
                     lift.setPower(0.1);
                     lift2.setPower(0.1);
                     sleep(500);
-                    drive.followTrajectory(traj4);
-                    sleep(800);
+                    drive.followTrajectory(traj2);
+                    sleep(500);
                     claw.setPower(-0.3);
                     claw2.setPower(-0.3);
                     sleep(500);
@@ -254,10 +250,12 @@ public class RedRight extends LinearOpMode {
                 }
                 else if(middle == true){
                     drive.followTrajectory(traj1);
-                    swingBar.setPower(0.3);
-                    drive.turn(Math.toRadians(-150));
                     sleep(500);
-                    drive.followTrajectory(traj2);
+                    drive.followTrajectory(traj9);
+                    swingBar.setPower(0.3);
+                    sleep(200);
+                    drive.turn(Math.toRadians(-150));
+                    sleep(200);
                     swingBar.setPower(0);
                     claw.setPower(-0.3);
                     claw2.setPower(-0.3);
@@ -284,7 +282,7 @@ public class RedRight extends LinearOpMode {
                     sleep(500);
                     claw.setPower(0);
                     claw2.setPower(0);
-                    swingBar.setPower(0.38);
+                    swingBar.setPower(0.35);
                     sleep(500);
                     lift.setPower(-0.4);
                     lift2.setPower(-0.4);
@@ -345,7 +343,7 @@ public class RedRight extends LinearOpMode {
         }
 
         // Choose a camera resolution. Not all cameras support all resolutions.
-        //builder.setCameraResolution(new Size(640, 480));
+//        builder.setCameraResolution(new Size(640, 480));
 
         // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
         //builder.enableCameraMonitoring(true);
@@ -365,7 +363,7 @@ public class RedRight extends LinearOpMode {
         visionPortal = builder.build();
 
         // Set confidence threshold for TFOD recognitions, at any time.
-        tfod.setMinResultConfidence(0.58f);
+        tfod.setMinResultConfidence(0.65f);
 
         // Disable or re-enable the TFOD processor at any time.
         //visionPortal.setProcessorEnabled(tfod, true);
@@ -392,7 +390,7 @@ public class RedRight extends LinearOpMode {
             if(x<150){//these numbers might need to be tested and updated because x is in the upper right corner of the rect
                 left = true;
             }
-            else if(x>350){
+            else if(x>400){
                 right = true;
             }
             else{
