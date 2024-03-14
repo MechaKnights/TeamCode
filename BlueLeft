@@ -1,126 +1,358 @@
+/* Copyright (c) 2019 FIRST. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted (subject to the limitations in the disclaimer below) provided that
+ * the following conditions are met:
+ *
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of FIRST nor the names of its contributors may be used to endorse or
+ * promote products derived from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
+ * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+//
 package org.firstinspires.ftc.teamcode.drive.opmode;
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-import org.openftc.easyopencv.OpenCvPipeline;
+//try using dcmotorex.setposition() to move the motors a certain distance
 
-public class TeamShippingElementPipelineBlue extends OpenCvPipeline {
-    //An enum to define the Team Shipping Element position
-    public enum TeamShippingElementPosition {
-        LEFT,
-        CENTER,
-        RIGHT
-    }
-    //Some colors for the display
-    static final Scalar BLUE = new Scalar(0,0,255);
-    static final Scalar GREEN = new Scalar(0,255,0);
+import android.util.Size;
 
-    //20 x 20 pixel boxes. We'll need to adjust these
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.arcrobotics.ftclib.controller.PIDController;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.Servo;
 
-    static final Rect LEFT_ROI = new Rect(
-            new Point(0, 100),
-            new Point(20, 120));
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.tfod.TfodProcessor;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvWebcam;
 
-    static final Rect CENTER_ROI = new Rect(
-            new Point(170, 100),
-            new Point(190, 120));
+import java.util.List;
 
-    static final Rect RIGHT_ROI = new Rect(
-            new Point(300, 100),
-            new Point(320, 120));
+@Autonomous(name = "Blue Left TensorFlow", group = "Concept")
+public class BlueLeft extends LinearOpMode {
+    OpenCvWebcam webcam;
+    org.firstinspires.ftc.teamcode.drive.opmode.TeamShippingElementPipelineBlue pipeline;
+    org.firstinspires.ftc.teamcode.drive.opmode.TeamShippingElementPipelineBlue.TeamShippingElementPosition snapshotAnalysis = org.firstinspires.ftc.teamcode.drive.opmode.TeamShippingElementPipelineBlue.TeamShippingElementPosition.RIGHT;
 
-    Mat mat = new Mat();
+    public static double p=0.003, i=0, d=0.0002, f=0.05;
+    public static double goal = 0;
+    public static double curr = 0;
+    private PIDController slideController;
+    private DistanceSensor distance;
+    boolean left;
+    boolean right;
+    boolean middle;
+    double speed;
+    private DcMotorEx lift;
+    private DcMotorEx lift2;
+    private DcMotor swingBar;
+    private CRServo claw;
+    private CRServo claw2;
+    private Servo yellowServo;
+    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
 
-    private volatile TeamShippingElementPosition position = TeamShippingElementPosition.RIGHT;
+    /**
+     * The variable to store our instance of the TensorFlow Object Detection processor.
+     */
+    private TfodProcessor tfod;
+
+    /**
+     * The variable to store our instance of the vision portal.
+     */
+    private VisionPortal visionPortal;
 
     @Override
-    public Mat processFrame(Mat input){
-        Imgproc.cvtColor(input, mat, Imgproc.COLOR_RGB2HSV);
-        //This is what detects the color green
-        Scalar lowHSV = new Scalar(171,255,237);
-        Scalar highHSV = new Scalar(128,255,0);
+    public void runOpMode() {
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        webcam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
 
-        Core.inRange(mat,lowHSV,highHSV,mat);
+        pipeline = new org.firstinspires.ftc.teamcode.drive.opmode.TeamShippingElementPipelineBlue();
+        webcam.setPipeline(pipeline);
 
-        Mat left = mat.submat(LEFT_ROI);
-        Mat right = mat.submat(RIGHT_ROI);
-        Mat center = mat.submat(CENTER_ROI);
+        webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+            @Override
+            public void onOpened() {
+                webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+            }
 
-        double leftValue = Core.sumElems(left).val[0] / LEFT_ROI.area() / 255;
-        double centerValue = Core.sumElems(center).val[0] / CENTER_ROI.area() / 255;
-        double rightValue = Core.sumElems(right).val[0] / RIGHT_ROI.area() / 255;
+            @Override
+            public void onError(int errorCode) {
 
-        left.release();
-        center.release();
-        right.release();
+            }
+        });
 
-        double maxOneTwo = Math.max(leftValue, centerValue);
-        double max = Math.max(maxOneTwo, rightValue);
+        // Wait for the DS start button to be touched.
+        telemetry.addData("DS preview on/off", "3 dots, Camera Stream");
+        telemetry.addData(">", "Touch Play to start OpMode");
+        telemetry.update();
+//        swingBar.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        slideController = new PIDController(p,i,d);
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+        while (!isStarted() && !isStopRequested()) {
+            telemetry.addData("Realtime analysis", pipeline.getAnalysis());
+            telemetry.update();
 
-        Imgproc.cvtColor(mat,mat,Imgproc.COLOR_GRAY2RGB);
+            sleep(50);
+        }
+        waitForStart();
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-        Imgproc.rectangle(
-                input,
-                new Point(0,100),
-                new Point(20,120),
-                BLUE,
-                -1);
+        lift = hardwareMap.get(DcMotorEx.class, "lift");
+        lift2 = hardwareMap.get(DcMotorEx.class, "lift2");
+        claw = hardwareMap.get(CRServo.class, "claw");
+        claw2 = hardwareMap.get(CRServo.class, "claw2");
+        swingBar = hardwareMap.get(DcMotor.class, "swingBar");
+        yellowServo = hardwareMap.get(Servo.class, "yellowServo");
+        distance = hardwareMap.get(DistanceSensor.class, "distance");
 
-        Imgproc.rectangle(
-                input,
-                new Point(170,100),
-                new Point(190,120),
-                BLUE,
-                -1);
+        lift2.setDirection(DcMotorEx.Direction.REVERSE);
+        claw.setDirection(DcMotorSimple.Direction.REVERSE);
+        speed = 0.25;
 
-        Imgproc.rectangle(
-                input,
-                new Point(300,100),
-                new Point(320,120),
-                BLUE,
-                -1);
+        Trajectory traj1 = drive.trajectoryBuilder(new Pose2d())
+                .back(45)
+                .build();
+        Trajectory traj2 = drive.trajectoryBuilder(new Pose2d())
+                .forward(16)
+                .build();
+        Trajectory traj3 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .back(15)
+                .build();
+        Trajectory traj4 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .back(22)
+                .build();
+        Trajectory traj5 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .strafeRight(17)
+                .build();
+        Trajectory traj6 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .forward(5)
+                .build();
+        Trajectory traj7 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .strafeRight(14)
+                .build();
+        Trajectory traj8 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .back(10)
+                .build();
+        Trajectory traj9 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .back(8)
+                .build();
+        Trajectory traj10 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .strafeRight(19)
+                .build();
+        Trajectory traj11 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .forward(5)
+                .build();
+        Trajectory traj12 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .strafeRight(21)
+                .build();
+        Trajectory traj13 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .back(3)
+                .build();
+        Trajectory traj14 = drive.trajectoryBuilder(new Pose2d())
+                .forward(6)
+                .build();
+        Trajectory traj15 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .forward(7)
+                .build();
+        Trajectory traj16 = drive.trajectoryBuilder(new Pose2d())
+                .back(29)
+                .build();
+        Trajectory traj17 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
+                .strafeRight(25)
+                .build();
+        Trajectory traj18 = drive.trajectoryBuilder(new Pose2d())
+                .strafeRight(5)
+                .build();
 
-        //if statements to determine where the green object is
-        if(max == leftValue) {
-            position = TeamShippingElementPosition.LEFT;
+        if (opModeIsActive()) {
+            while (opModeIsActive()) {
 
-            Imgproc.rectangle(
-                    input,
-                    new Point(0,100),
-                    new Point(20,120),
-                    GREEN,
-                    -1);
+                snapshotAnalysis = pipeline.getAnalysis();
 
+                telemetry.addData("Snapshot post-START analysis", snapshotAnalysis);
+                telemetry.update();
+
+                // Push telemetry to the Driver Station.
+                telemetry.update();
+
+                // Save CPU resources; can resume streaming when needed.
+                if (gamepad1.dpad_down) {
+                    visionPortal.stopStreaming();
+                } else if (gamepad1.dpad_up) {
+                    visionPortal.resumeStreaming();
+                }
+
+                if(right == true){
+                    drive.followTrajectory(traj16);
+                    sleep(500);
+                    swingBar.setPower(0.3);
+                    drive.turn(Math.toRadians(90));
+                    sleep(200);
+                    swingBar.setPower(0);
+                    sleep(200);
+                    drive.followTrajectory(traj15);
+                    claw.setPower(-0.3);
+                    claw2.setPower(-0.3);
+                    sleep(300);
+                    claw.setPower(0);
+                    claw2.setPower(0);
+                    sleep(200);
+                    swingBar.setPower(0.3);
+                    sleep(500);
+//                    if (distance.getDistance(DistanceUnit.INCH) > 0.5) {
+//                        drive.setMotorPowers(-0.2, -0.2, -0.2, -0.2);
+//                    } else if (distance.getDistance(DistanceUnit.INCH) < 0.5) {
+//                        drive.setMotorPowers(0, 0, 0, 0);
+//                    }
+//                    drive.setMotorPowers(0, 0, 0, 0);
+                    while (distance.getDistance(DistanceUnit.INCH) > 3) {
+                        drive.setMotorPowers(-0.3, -0.3, -0.3, -0.3);
+                    }
+                    drive.setMotorPowers(0, 0, 0, 0);
+                    sleep(200);
+                    yellowServo.setPosition(0.44);
+                    sleep(600);
+                    drive.followTrajectory(traj6);
+                    sleep(500);
+                    yellowServo.setPosition(0.66);
+                    sleep(500);
+                    drive.followTrajectory(traj17);
+                    sleep(30000);
+                    break;
+                }
+                else if(left == true){
+                    swingBar.setPower(0.3);
+                    drive.followTrajectory(traj1);
+                    sleep(500);
+                    drive.followTrajectory(traj2);
+                    sleep(500);
+                    drive.turn(Math.toRadians(90));
+                    sleep(200);
+                    drive.followTrajectory(traj3);
+                    swingBar.setPower(0);
+                    claw.setPower(-0.3);
+                    claw2.setPower(-0.3);
+                    sleep(300);
+                    claw.setPower(0);
+                    claw2.setPower(0);
+                    sleep(200);
+                    drive.followTrajectory(traj13);
+                    swingBar.setPower(0.3);
+                    sleep(500);
+                    drive.followTrajectory(traj5);
+                    sleep(200);
+//                    if (distance.getDistance(DistanceUnit.INCH) > 1) {
+//                        drive.setMotorPowers(-0.3, -0.3, -0.3, -0.3);
+//                        telemetry.addData("distance: ", distance.getDistance(DistanceUnit.INCH));
+//                        telemetry.update();
+//                    } else if (distance.getDistance(DistanceUnit.INCH) < 1) {
+//                        telemetry.addData("distance: ", distance.getDistance(DistanceUnit.INCH));
+//                        telemetry.update();
+//                        drive.setMotorPowers(0, 0, 0, 0);
+//                    }
+//                    telemetry.addData("distance: ", distance.getDistance(DistanceUnit.INCH));
+//                    telemetry.update();
+//                    sleep(200);
+//                    drive.setMotorPowers(0, 0, 0, 0);
+                    while (distance.getDistance(DistanceUnit.INCH) > 3) {
+                        drive.setMotorPowers(-0.3, -0.3, -0.3, -0.3);
+                    }
+                    drive.setMotorPowers(0, 0, 0, 0);
+                    sleep(500);
+                    yellowServo.setPosition(0.45);
+                    sleep(600);
+                    drive.followTrajectory(traj6);
+                    sleep(500);
+                    yellowServo.setPosition(0.66);
+                    sleep(500);
+                    drive.followTrajectory(traj7);
+                    sleep(30000);
+                    break;
+                }
+                else if(middle == true){
+                    swingBar.setPower(0.3);
+                    drive.followTrajectory(traj1);
+                    sleep(200);
+                    drive.followTrajectory(traj14);
+                    sleep(200);
+                    drive.followTrajectory(traj18);
+                    sleep(200);
+                    drive.turn(Math.toRadians(90));
+                    sleep(200);
+                    drive.followTrajectory(traj8);
+                    swingBar.setPower(0);
+                    claw.setPower(-0.3);
+                    claw2.setPower(-0.3);
+                    sleep(300);
+                    claw.setPower(0);
+                    claw2.setPower(0);
+                    sleep(200);
+                    swingBar.setPower(0.3);
+                    drive.followTrajectory(traj13);
+                    sleep(500);
+                    drive.followTrajectory(traj10);
+                    sleep(500);
+//                    if (distance.getDistance(DistanceUnit.INCH) > 0.5) {
+//                        drive.setMotorPowers(-0.2, -0.2, -0.2, -0.2);
+//                    } else if (distance.getDistance(DistanceUnit.INCH) < 0.5) {
+//                        drive.setMotorPowers(0, 0, 0, 0);
+//                    }
+//                    drive.setMotorPowers(0, 0, 0, 0);
+                    while (distance.getDistance(DistanceUnit.INCH) > 3) {
+                        drive.setMotorPowers(-0.3, -0.3, -0.3, -0.3);
+                    }
+                    drive.setMotorPowers(0, 0, 0, 0);
+                    sleep(500);
+                    yellowServo.setPosition(0.44);
+                    sleep(600);
+                    drive.followTrajectory(traj11);
+                    sleep(500);
+                    yellowServo.setPosition(0.66);
+                    sleep(500);
+                    drive.followTrajectory(traj12);
+                    sleep(30000);
+                    break;
+                }
+
+                // Share the CPU.
+                sleep(20);
+            }
         }
 
-        if(max == centerValue) {
-            position = TeamShippingElementPosition.CENTER;
+        // Save more CPU resources when camera is no longer needed.
+        visionPortal.close();
 
-            Imgproc.rectangle(
-                    input,
-                    new Point(170,100),
-                    new Point(190,120),
-                    GREEN,
-                    -1);
-
-        }
-
-        if(max == rightValue) {
-            position = TeamShippingElementPosition.RIGHT;
-
-            Imgproc.rectangle(
-                    input,
-                    new Point(300,100),
-                    new Point(320,120),
-                    GREEN,
-                    -1);
-
-        }
-
-        return input;
-    }
-    public TeamShippingElementPosition getAnalysis() {return position;}
-}
+    }   // end runOpMode()
+}   // end class
