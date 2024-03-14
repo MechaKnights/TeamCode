@@ -1,390 +1,126 @@
-/* Copyright (c) 2019 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-//
 package org.firstinspires.ftc.teamcode.drive.opmode;
-//try using dcmotorex.setposition() to move the motors a certain distance
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvPipeline;
 
-import android.util.Size;
+public class TeamShippingElementPipelineBlue extends OpenCvPipeline {
+    //An enum to define the Team Shipping Element position
+    public enum TeamShippingElementPosition {
+        LEFT,
+        CENTER,
+        RIGHT
+    }
+    //Some colors for the display
+    static final Scalar BLUE = new Scalar(0,0,255);
+    static final Scalar GREEN = new Scalar(0,255,0);
 
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.trajectory.Trajectory;
-import com.arcrobotics.ftclib.controller.PIDController;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
-import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
-import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.tfod.TfodProcessor;
+    //20 x 20 pixel boxes. We'll need to adjust these
 
-import java.util.List;
+    static final Rect LEFT_ROI = new Rect(
+            new Point(0, 100),
+            new Point(20, 120));
 
-@Autonomous(name = "Blue Left TensorFlow", group = "Concept")
-public class BlueLeft extends LinearOpMode {
-    public static double p=0.003, i=0, d=0.0002, f=0.05;
-    public static double goal = 0;
-    public static double curr = 0;
-    private PIDController slideController;
-    boolean left;
-    boolean right;
-    boolean middle;
-    double speed;
-    private DcMotorEx lift;
-    private DcMotorEx lift2;
-    private DcMotor swingBar;
-    private CRServo claw;
-    private CRServo claw2;
-    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
+    static final Rect CENTER_ROI = new Rect(
+            new Point(170, 100),
+            new Point(190, 120));
 
-    /**
-     * The variable to store our instance of the TensorFlow Object Detection processor.
-     */
-    private TfodProcessor tfod;
+    static final Rect RIGHT_ROI = new Rect(
+            new Point(300, 100),
+            new Point(320, 120));
 
-    /**
-     * The variable to store our instance of the vision portal.
-     */
-    private VisionPortal visionPortal;
+    Mat mat = new Mat();
+
+    private volatile TeamShippingElementPosition position = TeamShippingElementPosition.RIGHT;
 
     @Override
-    public void runOpMode() {
+    public Mat processFrame(Mat input){
+        Imgproc.cvtColor(input, mat, Imgproc.COLOR_RGB2HSV);
+        //This is what detects the color green
+        Scalar lowHSV = new Scalar(171,255,237);
+        Scalar highHSV = new Scalar(128,255,0);
 
-        initTfod();
+        Core.inRange(mat,lowHSV,highHSV,mat);
 
-        // Wait for the DS start button to be touched.
-        telemetry.addData("DS preview on/off", "3 dots, Camera Stream");
-        telemetry.addData(">", "Touch Play to start OpMode");
-        telemetry.update();
-//        swingBar.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        slideController = new PIDController(p,i,d);
-        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        waitForStart();
-        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+        Mat left = mat.submat(LEFT_ROI);
+        Mat right = mat.submat(RIGHT_ROI);
+        Mat center = mat.submat(CENTER_ROI);
 
-        lift = hardwareMap.get(DcMotorEx.class, "lift");
-        lift2 = hardwareMap.get(DcMotorEx.class, "lift2");
-        claw = hardwareMap.get(CRServo.class, "claw");
-        claw2 = hardwareMap.get(CRServo.class, "claw2");
-        swingBar = hardwareMap.get(DcMotor.class, "swingBar");
+        double leftValue = Core.sumElems(left).val[0] / LEFT_ROI.area() / 255;
+        double centerValue = Core.sumElems(center).val[0] / CENTER_ROI.area() / 255;
+        double rightValue = Core.sumElems(right).val[0] / RIGHT_ROI.area() / 255;
 
-        lift2.setDirection(DcMotorEx.Direction.REVERSE);
-        claw.setDirection(DcMotorSimple.Direction.REVERSE);
-        speed = 0.25;
+        left.release();
+        center.release();
+        right.release();
 
-        Trajectory traj1 = drive.trajectoryBuilder(new Pose2d())
-                .back(52)
-                .build();
-        Trajectory traj2 = drive.trajectoryBuilder(new Pose2d(-52, 0, 0))
-                .back(5)
-                .build();
-        Trajectory traj3 = drive.trajectoryBuilder(new Pose2d(-35, 0, -150))
-                .forward(15)
-                .build();
-        Trajectory traj4 = drive.trajectoryBuilder(new Pose2d(-33, 15, -150))
-                .strafeRight(45)
-                .build();
-        Trajectory traj5 = drive.trajectoryBuilder(new Pose2d())
-                .forward(17)
-                .build();
-        Trajectory traj6 = drive.trajectoryBuilder(new Pose2d(-42, 0, -150))
-                .back(20)
-                .build();
-        Trajectory traj7 = drive.trajectoryBuilder(new Pose2d(-42, -10, -150))
-                .strafeRight(68)
-                .build();
-        Trajectory traj8 = drive.trajectoryBuilder(new Pose2d(0, -10, -150))
-                .back(20)
-                .build();
-        Trajectory traj9 = drive.trajectoryBuilder(new Pose2d(0, -10, -150))
-                .back(20)
-                .build();
-        Trajectory traj10 = drive.trajectoryBuilder(new Pose2d())
-                .back(10)
-                .build();
-        Trajectory traj11 = drive.trajectoryBuilder(new Pose2d(0, -10, -150))
-                .back(26)
-                .build();
-        Trajectory traj12 = drive.trajectoryBuilder(new Pose2d(-42, 0, -150))
-                .strafeRight(50)
-                .build();
-        Trajectory traj13 = drive.trajectoryBuilder(new Pose2d(-42, 0, -150))
-                .back(12)
-                .build();
-        Trajectory traj14 = drive.trajectoryBuilder(new Pose2d(-42, 0, -150))
-                .strafeRight(70)
-                .build();
+        double maxOneTwo = Math.max(leftValue, centerValue);
+        double max = Math.max(maxOneTwo, rightValue);
 
-        if (opModeIsActive()) {
-            while (opModeIsActive()) {
-                telemetryTfod();
+        Imgproc.cvtColor(mat,mat,Imgproc.COLOR_GRAY2RGB);
 
+        Imgproc.rectangle(
+                input,
+                new Point(0,100),
+                new Point(20,120),
+                BLUE,
+                -1);
 
-                // Push telemetry to the Driver Station.
-                telemetry.update();
+        Imgproc.rectangle(
+                input,
+                new Point(170,100),
+                new Point(190,120),
+                BLUE,
+                -1);
 
-                // Save CPU resources; can resume streaming when needed.
-                if (gamepad1.dpad_down) {
-                    visionPortal.stopStreaming();
-                } else if (gamepad1.dpad_up) {
-                    visionPortal.resumeStreaming();
-                }
+        Imgproc.rectangle(
+                input,
+                new Point(300,100),
+                new Point(320,120),
+                BLUE,
+                -1);
 
-                if(right == true){
-                    drive.followTrajectory(traj1);
-                    sleep(500);
-                    drive.followTrajectory(traj5);
-                    swingBar.setPower(0.3);
-                    drive.turn(Math.toRadians(150));
-                    drive.followTrajectory(traj11);
-                    swingBar.setPower(0);
-                    claw.setPower(-0.3);
-                    claw2.setPower(-0.3);
-                    sleep(300);
-                    claw.setPower(0);
-                    claw2.setPower(0);
-                    swingBar.setPower(0.3);
-                    lift.setPower(0.6);
-                    lift2.setPower(0.6);
-                    sleep(3000);
-                    swingBar.setPower(-0.1);
-                    lift.setPower(0.1);
-                    lift2.setPower(0.1);
-                    sleep(200);
-                    claw.setPower(-0.3);
-                    claw2.setPower(-0.3);
-                    sleep(500);
-                    claw.setPower(0);
-                    claw2.setPower(0);
-                    swingBar.setPower(0.38);
-                    sleep(500);
-                    lift.setPower(-0.4);
-                    lift2.setPower(-0.4);
-                    sleep(3000);
-                    lift.setPower(0);
-                    lift2.setPower(0);
-                    drive.followTrajectory(traj8);
-                    sleep(200);
-                    drive.followTrajectory(traj14);
-                    sleep(30000);
-                    break;
-                }
-                else if(left == true){
-                    drive.followTrajectory(traj1);
-                    sleep(500);
-                    drive.followTrajectory(traj5);
-                    swingBar.setPower(0.3);
-                    drive.turn(Math.toRadians(150));
-                    drive.followTrajectory(traj11);
-                    swingBar.setPower(0);
-                    claw.setPower(-0.3);
-                    claw2.setPower(-0.3);
-                    sleep(300);
-                    claw.setPower(0);
-                    claw2.setPower(0);
-                    swingBar.setPower(0.3);
-                    lift.setPower(0.6);
-                    lift2.setPower(0.6);
-                    sleep(3000);
-                    swingBar.setPower(-0.1);
-                    lift.setPower(0.1);
-                    lift2.setPower(0.1);
-                    sleep(200);
-                    claw.setPower(-0.3);
-                    claw2.setPower(-0.3);
-                    sleep(500);
-                    claw.setPower(0);
-                    claw2.setPower(0);
-                    swingBar.setPower(0.38);
-                    sleep(500);
-                    lift.setPower(-0.4);
-                    lift2.setPower(-0.4);
-                    sleep(3000);
-                    lift.setPower(0);
-                    lift2.setPower(0);
-                    drive.followTrajectory(traj8);
-                    sleep(200);
-                    drive.followTrajectory(traj14);
-                    sleep(30000);
-                    break;
-                }
-                else if(middle == true){
-                    drive.followTrajectory(traj1);
-                    sleep(500);
-                    drive.followTrajectory(traj5);
-                    swingBar.setPower(0.3);
-                    drive.turn(Math.toRadians(150));
-                    drive.followTrajectory(traj11);
-                    swingBar.setPower(0);
-                    claw.setPower(-0.3);
-                    claw2.setPower(-0.3);
-                    sleep(300);
-                    claw.setPower(0);
-                    claw2.setPower(0);
-                    swingBar.setPower(0.3);
-                    lift.setPower(0.6);
-                    lift2.setPower(0.6);
-                    sleep(3000);
-                    swingBar.setPower(-0.1);
-                    lift.setPower(0.1);
-                    lift2.setPower(0.1);
-                    sleep(200);
-                    claw.setPower(-0.3);
-                    claw2.setPower(-0.3);
-                    sleep(500);
-                    claw.setPower(0);
-                    claw2.setPower(0);
-                    swingBar.setPower(0.38);
-                    sleep(500);
-                    lift.setPower(-0.4);
-                    lift2.setPower(-0.4);
-                    sleep(3000);
-                    lift.setPower(0);
-                    lift2.setPower(0);
-                    drive.followTrajectory(traj8);
-                    sleep(200);
-                    drive.followTrajectory(traj14);
-                    sleep(30000);
-                    break;
-                }
-                else{
-                    drive.setMotorPowers(0, 0, 0, 0);
-                }
+        //if statements to determine where the green object is
+        if(max == leftValue) {
+            position = TeamShippingElementPosition.LEFT;
 
-                // Share the CPU.
-                sleep(20);
-            }
+            Imgproc.rectangle(
+                    input,
+                    new Point(0,100),
+                    new Point(20,120),
+                    GREEN,
+                    -1);
+
         }
 
-        // Save more CPU resources when camera is no longer needed.
-        visionPortal.close();
+        if(max == centerValue) {
+            position = TeamShippingElementPosition.CENTER;
 
-    }   // end runOpMode()
+            Imgproc.rectangle(
+                    input,
+                    new Point(170,100),
+                    new Point(190,120),
+                    GREEN,
+                    -1);
 
-    /**
-     * Initialize the TensorFlow Object Detection processor.
-     */
-    private void initTfod() {
-
-        // Create the TensorFlow processor by using a builder.
-        tfod = new TfodProcessor.Builder()
-
-                // Use setModelAssetName() if the TF Model is built in as an asset.
-                // Use setModelFileName() if you have downloaded a custom team model to the Robot Controller.
-                .setModelAssetName("blueModel.tflite")
-                //.setModelFileName(redModel)
-
-                .setModelLabels(new String [] {
-                        "blue"
-                })
-                //.setIsModelTensorFlow2(true)
-                //.setIsModelQuantized(true)
-                //.setModelInputSize(300)
-                //.setModelAspectRatio(16.0 / 9.0)
-
-                .build();
-
-        // Create the vision portal by using a builder.
-        VisionPortal.Builder builder = new VisionPortal.Builder();
-
-        // Set the camera (webcam vs. built-in RC phone camera).
-        if (USE_WEBCAM) {
-            builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
-        } else {
-            builder.setCamera(BuiltinCameraDirection.BACK);
         }
 
-        // Choose a camera resolution. Not all cameras support all resolutions.
-        builder.setCameraResolution(new Size(640, 480));
+        if(max == rightValue) {
+            position = TeamShippingElementPosition.RIGHT;
 
-        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
-        //builder.enableCameraMonitoring(true);
+            Imgproc.rectangle(
+                    input,
+                    new Point(300,100),
+                    new Point(320,120),
+                    GREEN,
+                    -1);
 
-        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
-        //builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
-
-        // Choose whether or not LiveView stops if no processors are enabled.
-        // If set "true", monitor shows solid orange screen if no processors enabled.
-        // If set "false", monitor shows camera view without annotations.
-        //builder.setAutoStopLiveView(false);
-
-        // Set and enable the processor.
-        builder.addProcessor(tfod);
-
-        // Build the Vision Portal, using the above settings.
-        visionPortal = builder.build();
-
-        // Set confidence threshold for TFOD recognitions, at any time.
-        tfod.setMinResultConfidence(0.4f);
-
-        // Disable or re-enable the TFOD processor at any time.
-        //visionPortal.setProcessorEnabled(tfod, true);
-
-    }   // end method initTfod()
-
-    /**
-     * Add telemetry about TensorFlow Object Detection (TFOD) recognitions.
-     */
-    private void telemetryTfod() {
-
-        List<Recognition> currentRecognitions = tfod.getRecognitions();
-        telemetry.addData("# Objects Detected", currentRecognitions.size());
-
-        // Step through the list of recognitions and display info for each one.
-        for (Recognition recognition : currentRecognitions) {
-            double x = (recognition.getLeft() + recognition.getRight()) / 2 ;
-            double y = (recognition.getTop()  + recognition.getBottom()) / 2 ;
-
-            telemetry.addData(""," ");
-            telemetry.addData("Image", "%s (%.0f %% Conf.)", recognition.getLabel(), recognition.getConfidence() * 100);
-            telemetry.addData("- Position", "%.0f / %.0f", x, y);
-            telemetry.addData("- Size", "%.0f x %.0f", recognition.getWidth(), recognition.getHeight());
-            if(x<150){//these numbers might need to be tested and updated because x is in the upper right corner of the rect
-                left = true;
-            }
-            else if(x>400){
-                right = true;
-            }
-            else{
-                middle = true;
-            }
-        }   // end for() loop
-        if(currentRecognitions.size() == 0){
-            left = true;
-            right = true;
-            middle = true;
         }
-    }   // end method telemetryTfod()
-}   // end class
+
+        return input;
+    }
+    public TeamShippingElementPosition getAnalysis() {return position;}
+}
