@@ -52,7 +52,7 @@ import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "Red Left Tensorflow", group = "Concept")
+@Autonomous(name = "Red Far", group = "Concept")
 public class RedLeft extends LinearOpMode {
     public static double p=0.003, i=0, d=0.0002, f=0.05;
     public static double goal = 0;
@@ -107,17 +107,44 @@ public class RedLeft extends LinearOpMode {
         Trajectory traj1 = drive.trajectoryBuilder(new Pose2d())
                 .back(50)
                 .build();
-        Trajectory traj2 = drive.trajectoryBuilder(new Pose2d(-50, 0, 0))
-                .back(15)
+        Trajectory traj2 = drive.trajectoryBuilder(new Pose2d())
+                .forward(15)
                 .build();
-        Trajectory traj3 = drive.trajectoryBuilder(new Pose2d(-35, 0, -150))
-                .forward(10)
+        Trajectory traj3 = drive.trajectoryBuilder(new Pose2d())
+                .forward(3)
                 .build();
-        Trajectory traj4 = drive.trajectoryBuilder(new Pose2d(-35, 0, -150))
-                .back(8)
+        Trajectory traj4 = drive.trajectoryBuilder(new Pose2d())
+                .back(4)
                 .build();
         Trajectory traj5 = drive.trajectoryBuilder(new Pose2d())
-                .forward(15)
+                .forward(4) // 6
+                .build();
+        Trajectory traj6 = drive.trajectoryBuilder(new Pose2d())
+                .back(29)
+                .build();
+        Trajectory traj7 = drive.trajectoryBuilder(new Pose2d())
+                .strafeRight(40)
+                .build();
+        Trajectory traj8 = drive.trajectoryBuilder(new Pose2d())
+                .strafeLeft(5)
+                .build();
+        Trajectory traj9 = drive.trajectoryBuilder(new Pose2d())
+                .forward(70)
+                .build();
+        Trajectory traj10 = drive.trajectoryBuilder(new Pose2d())
+                .strafeLeft(30)
+                .build();
+        Trajectory traj11 = drive.trajectoryBuilder(new Pose2d())
+                .forward(10)
+                .build();
+        Trajectory traj12 = drive.trajectoryBuilder(new Pose2d())
+                .strafeRight(40)
+                .build();
+        Trajectory traj13 = drive.trajectoryBuilder(new Pose2d())
+                .strafeRight(5)
+                .build();
+        Trajectory traj14 = drive.trajectoryBuilder(new Pose2d())
+                .strafeLeft(30)
                 .build();
         if (opModeIsActive()) {
             while (opModeIsActive()) {
@@ -135,11 +162,10 @@ public class RedLeft extends LinearOpMode {
                 }
 
                 if(right == true){
-                    drive.followTrajectory(traj1);
-                    sleep(500);
-                    drive.followTrajectory(traj5);
-                    sleep(200);
-                    drive.turn(Math.toRadians(150));
+                    swingBar.setPower(0.2);
+                    drive.followTrajectory(traj6);
+                    sleep(300);
+                    drive.turn(Math.toRadians(100));
                     sleep(500);
                     drive.followTrajectory(traj5);
                     sleep(200);
@@ -150,14 +176,23 @@ public class RedLeft extends LinearOpMode {
                     claw.setPower(0);
                     claw2.setPower(0);
                     drive.followTrajectory(traj4);
+                    sleep(200);
+                    drive.followTrajectory(traj7);
+                    sleep(200);
+                    drive.followTrajectory(traj8);
+                    sleep(200);
+                    drive.followTrajectory(traj9);
+                    sleep(200);
+                    drive.followTrajectory(traj10);
+                    sleep(200);
+                    drive.followTrajectory(traj11);
+                    sleep(200);
                     break;
                 }
                 else if(left == true){
                     drive.followTrajectory(traj1);
                     sleep(500);
-                    drive.followTrajectory(traj5);
-                    sleep(200);
-                    drive.turn(Math.toRadians(-150));
+                    drive.turn(Math.toRadians(-90));
                     sleep(200);
                     drive.followTrajectory(traj3);
                     sleep(500);
@@ -168,10 +203,24 @@ public class RedLeft extends LinearOpMode {
                     claw.setPower(0);
                     claw2.setPower(0);
                     drive.followTrajectory(traj4);
+                    sleep(200);
+                    drive.followTrajectory(traj12);
+                    sleep(200);
+                    drive.followTrajectory(traj7);
+                    sleep(200);
+                    drive.followTrajectory(traj13);
+                    sleep(200);
+                    drive.followTrajectory(traj9);
+                    sleep(200);
+                    drive.followTrajectory(traj14);
+                    sleep(200);
+                    drive.followTrajectory(traj11);
+                    sleep(200);
                     break;
                 }
                 else if(middle == true){
                     drive.followTrajectory(traj1);
+                    sleep(200);
                     drive.followTrajectory(traj2);
                     claw.setPower(-0.3);
                     claw2.setPower(-0.3);
@@ -179,6 +228,18 @@ public class RedLeft extends LinearOpMode {
                     drive.followTrajectory(traj4);
                     claw.setPower(0);
                     claw2.setPower(0);
+                    drive.turn(Math.toRadians(100));
+                    sleep(200);
+                    drive.followTrajectory(traj7);
+                    sleep(200);
+                    drive.followTrajectory(traj8);
+                    sleep(200);
+                    drive.followTrajectory(traj9);
+                    sleep(200);
+                    drive.followTrajectory(traj10);
+                    sleep(200);
+                    drive.followTrajectory(traj11);
+                    sleep(200);
                     break;
                 }
                 else{
@@ -249,7 +310,7 @@ public class RedLeft extends LinearOpMode {
         visionPortal = builder.build();
 
         // Set confidence threshold for TFOD recognitions, at any time.
-        tfod.setMinResultConfidence(0.58f);
+        tfod.setMinResultConfidence(0.7f);
 
         // Disable or re-enable the TFOD processor at any time.
         //visionPortal.setProcessorEnabled(tfod, true);
