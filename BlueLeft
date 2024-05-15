@@ -43,34 +43,21 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
-import com.qualcomm.robotcore.hardware.Servo;
-
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.tfod.TfodProcessor;
-import org.openftc.easyopencv.OpenCvCamera;
-import org.openftc.easyopencv.OpenCvCameraFactory;
-import org.openftc.easyopencv.OpenCvCameraRotation;
-import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.List;
 
-@Autonomous(name = "Blue Left TensorFlow", group = "Concept")
-public class BlueLeft extends LinearOpMode {
-    OpenCvWebcam webcam;
-    org.firstinspires.ftc.teamcode.drive.opmode.TeamShippingElementPipelineBlue pipeline;
-    org.firstinspires.ftc.teamcode.drive.opmode.TeamShippingElementPipelineBlue.TeamShippingElementPosition snapshotAnalysis = org.firstinspires.ftc.teamcode.drive.opmode.TeamShippingElementPipelineBlue.TeamShippingElementPosition.RIGHT;
-
+@Autonomous(name = "Blue Far", group = "Concept")
+public class BlueRight extends LinearOpMode {
     public static double p=0.003, i=0, d=0.0002, f=0.05;
     public static double goal = 0;
     public static double curr = 0;
     private PIDController slideController;
-    private DistanceSensor distance;
     boolean left;
     boolean right;
     boolean middle;
@@ -80,7 +67,6 @@ public class BlueLeft extends LinearOpMode {
     private DcMotor swingBar;
     private CRServo claw;
     private CRServo claw2;
-    private Servo yellowServo;
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
 
     /**
@@ -95,23 +81,8 @@ public class BlueLeft extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        webcam = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
 
-        pipeline = new org.firstinspires.ftc.teamcode.drive.opmode.TeamShippingElementPipelineBlue();
-        webcam.setPipeline(pipeline);
-
-        webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
-            @Override
-            public void onOpened() {
-                webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
-            }
-
-            @Override
-            public void onError(int errorCode) {
-
-            }
-        });
+        initTfod();
 
         // Wait for the DS start button to be touched.
         telemetry.addData("DS preview on/off", "3 dots, Camera Stream");
@@ -120,12 +91,6 @@ public class BlueLeft extends LinearOpMode {
 //        swingBar.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         slideController = new PIDController(p,i,d);
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        while (!isStarted() && !isStopRequested()) {
-            telemetry.addData("Realtime analysis", pipeline.getAnalysis());
-            telemetry.update();
-
-            sleep(50);
-        }
         waitForStart();
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
@@ -134,75 +99,57 @@ public class BlueLeft extends LinearOpMode {
         claw = hardwareMap.get(CRServo.class, "claw");
         claw2 = hardwareMap.get(CRServo.class, "claw2");
         swingBar = hardwareMap.get(DcMotor.class, "swingBar");
-        yellowServo = hardwareMap.get(Servo.class, "yellowServo");
-        distance = hardwareMap.get(DistanceSensor.class, "distance");
 
         lift2.setDirection(DcMotorEx.Direction.REVERSE);
         claw.setDirection(DcMotorSimple.Direction.REVERSE);
         speed = 0.25;
 
         Trajectory traj1 = drive.trajectoryBuilder(new Pose2d())
-                .back(45)
+                .back(50)
                 .build();
         Trajectory traj2 = drive.trajectoryBuilder(new Pose2d())
-                .forward(16)
+                .forward(15)
                 .build();
-        Trajectory traj3 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .back(15)
+        Trajectory traj3 = drive.trajectoryBuilder(new Pose2d())
+                .forward(3)
                 .build();
-        Trajectory traj4 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .back(22)
+        Trajectory traj4 = drive.trajectoryBuilder(new Pose2d())
+                .back(4)
                 .build();
-        Trajectory traj5 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .strafeRight(17)
+        Trajectory traj5 = drive.trajectoryBuilder(new Pose2d())
+                .forward(4) // 6
                 .build();
-        Trajectory traj6 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .forward(5)
-                .build();
-        Trajectory traj7 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .strafeRight(14)
-                .build();
-        Trajectory traj8 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .back(10)
-                .build();
-        Trajectory traj9 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .back(8)
-                .build();
-        Trajectory traj10 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .strafeRight(19)
-                .build();
-        Trajectory traj11 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .forward(5)
-                .build();
-        Trajectory traj12 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .strafeRight(21)
-                .build();
-        Trajectory traj13 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .back(3)
-                .build();
-        Trajectory traj14 = drive.trajectoryBuilder(new Pose2d())
-                .forward(6)
-                .build();
-        Trajectory traj15 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .forward(7)
-                .build();
-        Trajectory traj16 = drive.trajectoryBuilder(new Pose2d())
+        Trajectory traj6 = drive.trajectoryBuilder(new Pose2d())
                 .back(29)
                 .build();
-        Trajectory traj17 = drive.trajectoryBuilder(new Pose2d(0, 0, -90))
-                .strafeRight(25)
+        Trajectory traj7 = drive.trajectoryBuilder(new Pose2d())
+                .strafeLeft(40)
                 .build();
-        Trajectory traj18 = drive.trajectoryBuilder(new Pose2d())
+        Trajectory traj8 = drive.trajectoryBuilder(new Pose2d())
                 .strafeRight(5)
                 .build();
-
+        Trajectory traj9 = drive.trajectoryBuilder(new Pose2d())
+                .forward(70)
+                .build();
+        Trajectory traj10 = drive.trajectoryBuilder(new Pose2d())
+                .strafeRight(30)
+                .build();
+        Trajectory traj11 = drive.trajectoryBuilder(new Pose2d())
+                .forward(10)
+                .build();
+        Trajectory traj12 = drive.trajectoryBuilder(new Pose2d())
+                .strafeLeft(40)
+                .build();
+        Trajectory traj13 = drive.trajectoryBuilder(new Pose2d())
+                .strafeLeft(5)
+                .build();
+        Trajectory traj14 = drive.trajectoryBuilder(new Pose2d())
+                .strafeRight(30)
+                .build();
         if (opModeIsActive()) {
             while (opModeIsActive()) {
+                telemetryTfod();
 
-                snapshotAnalysis = pipeline.getAnalysis();
-
-                telemetry.addData("Snapshot post-START analysis", snapshotAnalysis);
-                telemetry.update();
 
                 // Push telemetry to the Driver Station.
                 telemetry.update();
@@ -215,135 +162,88 @@ public class BlueLeft extends LinearOpMode {
                 }
 
                 if(right == true){
-                    drive.followTrajectory(traj16);
+                    swingBar.setPower(0.2);
+                    drive.followTrajectory(traj6);
+                    sleep(300);
+                    drive.turn(Math.toRadians(-100));
                     sleep(500);
-                    swingBar.setPower(0.3);
-                    drive.turn(Math.toRadians(90));
+                    drive.followTrajectory(traj5);
                     sleep(200);
                     swingBar.setPower(0);
-                    sleep(200);
-                    drive.followTrajectory(traj15);
                     claw.setPower(-0.3);
                     claw2.setPower(-0.3);
                     sleep(300);
                     claw.setPower(0);
                     claw2.setPower(0);
+                    drive.followTrajectory(traj4);
                     sleep(200);
-                    swingBar.setPower(0.3);
-                    sleep(500);
-//                    if (distance.getDistance(DistanceUnit.INCH) > 0.5) {
-//                        drive.setMotorPowers(-0.2, -0.2, -0.2, -0.2);
-//                    } else if (distance.getDistance(DistanceUnit.INCH) < 0.5) {
-//                        drive.setMotorPowers(0, 0, 0, 0);
-//                    }
-//                    drive.setMotorPowers(0, 0, 0, 0);
-                    while (distance.getDistance(DistanceUnit.INCH) > 3) {
-                        drive.setMotorPowers(-0.3, -0.3, -0.3, -0.3);
-                    }
-                    drive.setMotorPowers(0, 0, 0, 0);
+                    drive.followTrajectory(traj7);
                     sleep(200);
-                    yellowServo.setPosition(0.44);
-                    sleep(600);
-                    drive.followTrajectory(traj6);
-                    sleep(500);
-                    yellowServo.setPosition(0.66);
-                    sleep(500);
-                    drive.followTrajectory(traj17);
-                    sleep(30000);
+                    drive.followTrajectory(traj8);
+                    sleep(200);
+                    drive.followTrajectory(traj9);
+                    sleep(200);
+                    drive.followTrajectory(traj10);
+                    sleep(200);
+                    drive.followTrajectory(traj11);
+                    sleep(200);
                     break;
                 }
                 else if(left == true){
-                    swingBar.setPower(0.3);
                     drive.followTrajectory(traj1);
-                    sleep(500);
-                    drive.followTrajectory(traj2);
                     sleep(500);
                     drive.turn(Math.toRadians(90));
                     sleep(200);
                     drive.followTrajectory(traj3);
+                    sleep(500);
                     swingBar.setPower(0);
                     claw.setPower(-0.3);
                     claw2.setPower(-0.3);
                     sleep(300);
                     claw.setPower(0);
                     claw2.setPower(0);
+                    drive.followTrajectory(traj4);
+                    sleep(200);
+                    drive.followTrajectory(traj12);
+                    sleep(200);
+                    drive.followTrajectory(traj7);
                     sleep(200);
                     drive.followTrajectory(traj13);
-                    swingBar.setPower(0.3);
-                    sleep(500);
-                    drive.followTrajectory(traj5);
                     sleep(200);
-//                    if (distance.getDistance(DistanceUnit.INCH) > 1) {
-//                        drive.setMotorPowers(-0.3, -0.3, -0.3, -0.3);
-//                        telemetry.addData("distance: ", distance.getDistance(DistanceUnit.INCH));
-//                        telemetry.update();
-//                    } else if (distance.getDistance(DistanceUnit.INCH) < 1) {
-//                        telemetry.addData("distance: ", distance.getDistance(DistanceUnit.INCH));
-//                        telemetry.update();
-//                        drive.setMotorPowers(0, 0, 0, 0);
-//                    }
-//                    telemetry.addData("distance: ", distance.getDistance(DistanceUnit.INCH));
-//                    telemetry.update();
-//                    sleep(200);
-//                    drive.setMotorPowers(0, 0, 0, 0);
-                    while (distance.getDistance(DistanceUnit.INCH) > 3) {
-                        drive.setMotorPowers(-0.3, -0.3, -0.3, -0.3);
-                    }
-                    drive.setMotorPowers(0, 0, 0, 0);
-                    sleep(500);
-                    yellowServo.setPosition(0.45);
-                    sleep(600);
-                    drive.followTrajectory(traj6);
-                    sleep(500);
-                    yellowServo.setPosition(0.66);
-                    sleep(500);
-                    drive.followTrajectory(traj7);
-                    sleep(30000);
-                    break;
-                }
-                else if(middle == true){
-                    swingBar.setPower(0.3);
-                    drive.followTrajectory(traj1);
+                    drive.followTrajectory(traj9);
                     sleep(200);
                     drive.followTrajectory(traj14);
                     sleep(200);
-                    drive.followTrajectory(traj18);
+                    drive.followTrajectory(traj11);
                     sleep(200);
-                    drive.turn(Math.toRadians(90));
+                    break;
+                }
+                else if(middle == true){
+                    drive.followTrajectory(traj1);
                     sleep(200);
-                    drive.followTrajectory(traj8);
-                    swingBar.setPower(0);
+                    drive.followTrajectory(traj2);
                     claw.setPower(-0.3);
                     claw2.setPower(-0.3);
                     sleep(300);
+                    drive.followTrajectory(traj4);
                     claw.setPower(0);
                     claw2.setPower(0);
+                    drive.turn(Math.toRadians(-100));
                     sleep(200);
-                    swingBar.setPower(0.3);
-                    drive.followTrajectory(traj13);
-                    sleep(500);
+                    drive.followTrajectory(traj7);
+                    sleep(200);
+                    drive.followTrajectory(traj8);
+                    sleep(200);
+                    drive.followTrajectory(traj9);
+                    sleep(200);
                     drive.followTrajectory(traj10);
-                    sleep(500);
-//                    if (distance.getDistance(DistanceUnit.INCH) > 0.5) {
-//                        drive.setMotorPowers(-0.2, -0.2, -0.2, -0.2);
-//                    } else if (distance.getDistance(DistanceUnit.INCH) < 0.5) {
-//                        drive.setMotorPowers(0, 0, 0, 0);
-//                    }
-//                    drive.setMotorPowers(0, 0, 0, 0);
-                    while (distance.getDistance(DistanceUnit.INCH) > 3) {
-                        drive.setMotorPowers(-0.3, -0.3, -0.3, -0.3);
-                    }
-                    drive.setMotorPowers(0, 0, 0, 0);
-                    sleep(500);
-                    yellowServo.setPosition(0.44);
-                    sleep(600);
+                    sleep(200);
                     drive.followTrajectory(traj11);
-                    sleep(500);
-                    yellowServo.setPosition(0.66);
-                    sleep(500);
-                    drive.followTrajectory(traj12);
-                    sleep(30000);
+                    sleep(200);
                     break;
+                }
+                else{
+                    drive.setMotorPowers(0, 0, 0, 0);
                 }
 
                 // Share the CPU.
@@ -355,4 +255,99 @@ public class BlueLeft extends LinearOpMode {
         visionPortal.close();
 
     }   // end runOpMode()
+
+    /**
+     * Initialize the TensorFlow Object Detection processor.
+     */
+    private void initTfod() {
+
+        // Create the TensorFlow processor by using a builder.
+        tfod = new TfodProcessor.Builder()
+
+                // Use setModelAssetName() if the TF Model is built in as an asset.
+                // Use setModelFileName() if you have downloaded a custom team model to the Robot Controller.
+                .setModelAssetName("redModel.tflite")
+                //.setModelFileName(redModel)
+
+                .setModelLabels(new String [] {
+                        "red"
+                })
+                //.setIsModelTensorFlow2(true)
+                //.setIsModelQuantized(true)
+                //.setModelInputSize(300)
+                //.setModelAspectRatio(16.0 / 9.0)
+
+                .build();
+
+        // Create the vision portal by using a builder.
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        // Set the camera (webcam vs. built-in RC phone camera).
+        if (USE_WEBCAM) {
+            builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+        } else {
+            builder.setCamera(BuiltinCameraDirection.BACK);
+        }
+
+        // Choose a camera resolution. Not all cameras support all resolutions.
+        builder.setCameraResolution(new Size(640, 480));
+
+        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
+        //builder.enableCameraMonitoring(true);
+
+        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+        //builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
+
+        // Choose whether or not LiveView stops if no processors are enabled.
+        // If set "true", monitor shows solid orange screen if no processors enabled.
+        // If set "false", monitor shows camera view without annotations.
+        //builder.setAutoStopLiveView(false);
+
+        // Set and enable the processor.
+        builder.addProcessor(tfod);
+
+        // Build the Vision Portal, using the above settings.
+        visionPortal = builder.build();
+
+        // Set confidence threshold for TFOD recognitions, at any time.
+        tfod.setMinResultConfidence(0.7f);
+
+        // Disable or re-enable the TFOD processor at any time.
+        //visionPortal.setProcessorEnabled(tfod, true);
+
+    }   // end method initTfod()
+
+    /**
+     * Add telemetry about TensorFlow Object Detection (TFOD) recognitions.
+     */
+    private void telemetryTfod() {
+
+        List<Recognition> currentRecognitions = tfod.getRecognitions();
+        telemetry.addData("# Objects Detected", currentRecognitions.size());
+
+        // Step through the list of recognitions and display info for each one.
+        for (Recognition recognition : currentRecognitions) {
+            double x = (recognition.getLeft() + recognition.getRight()) / 2 ;
+            double y = (recognition.getTop()  + recognition.getBottom()) / 2 ;
+
+            telemetry.addData(""," ");
+            telemetry.addData("Image", "%s (%.0f %% Conf.)", recognition.getLabel(), recognition.getConfidence() * 100);
+            telemetry.addData("- Position", "%.0f / %.0f", x, y);
+            telemetry.addData("- Size", "%.0f x %.0f", recognition.getWidth(), recognition.getHeight());
+            if(x<150){//these numbers might need to be tested and updated because x is in the upper right corner of the rect
+                left = true;
+            }
+            else if(x>400){
+                right = true;
+            }
+            else{
+                middle = true;
+            }
+        }   // end for() loop
+        if(currentRecognitions.size() == 0){
+            left = true;
+            right = true;
+            middle = true;
+        }
+    }   // end method telemetryTfod()
 }   // end class
